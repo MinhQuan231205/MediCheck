@@ -60,13 +60,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Docker bat buoc ten repository phai viet thuong, ma
+      # github.repository_owner tra ve "AI20K-Build-Phase-Cohort-3" (co chu hoa)
+      # nen build that bai voi loi "repository name must be lowercase".
+      # Ha chu hoa ve chu thuong truoc khi dung lam tag.
+      - name: Chuan bi ten image (chu thuong)
+        id: image
+        run: |
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/$owner/p-005-backend" >> "$GITHUB_OUTPUT"
+
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/p-005-backend:latest
+          tags: ${{ steps.image.outputs.name }}:latest
 
       - name: Trigger Render deploy
         run: curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
@@ -76,6 +86,14 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
+
+      # Runner BTC KHONG cai san Node/npx (job truoc that bai voi
+      # "npx: command not found"), phai tu cai truoc khi goi Vercel CLI.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       # Chay tu repo root (KHONG working-directory: frontend) - project Vercel da
       # cau hinh san rootDirectory: "frontend", chay CLI tu trong frontend/ se bi
       # cong don thanh frontend/frontend va khong tim thay package.json.
