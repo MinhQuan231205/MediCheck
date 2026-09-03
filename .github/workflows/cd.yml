@@ -119,6 +119,10 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # Vercel CLI tu doc bien VERCEL_TOKEN, khong can co `--token=`.
+          # Truyen qua bien moi truong an toan hon: neu gia tri secret lo dinh
+          # khoang trang hay xuong dong thi dang `--token=$X` se vo cau lenh.
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           npm_config_cache: ${{ runner.temp }}/npm-cache
         run: |
           # Runner self-hosted giu lai workspace giua cac lan chay (cung ly do
@@ -130,7 +134,14 @@ jobs:
           CLI_DIR="${{ runner.temp }}/vercel-cli"
           npm install --no-save --prefix "$CLI_DIR" vercel@59
           VERCEL="$CLI_DIR/node_modules/.bin/vercel"
-          echo "--- token dang dung thuoc ve ai ---"
-          "$VERCEL" whoami --token=${{ secrets.VERCEL_TOKEN }}
-          "$VERCEL" pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          "$VERCEL" deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+          # Do dai token de phat hien secret bi dan thieu/thua ky tu.
+          # In do dai KHONG lam lo token; gia tri that van bi GitHub che.
+          echo "--- do dai VERCEL_TOKEN: ${#VERCEL_TOKEN} ky tu (Vercel cap 24) ---"
+
+          # whoami chi de chan doan, khong duoc lam hong job -> pull ben duoi
+          # moi la buoc bao loi that su.
+          echo "--- token thuoc ve ai ---"
+          "$VERCEL" whoami || echo "(whoami that bai - xem ghi chu ben duoi)"
+
+          "$VERCEL" pull --yes --environment=production
+          "$VERCEL" deploy --prod
