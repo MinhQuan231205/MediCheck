@@ -50,6 +50,13 @@ jobs:
   deploy-backend:
     needs: test
     runs-on: self-hosted
+    # Mac dinh GITHUB_TOKEN chi co quyen doc package -> push len GHCR that bai voi
+    # "denied: permission_denied: read_package". Khai bao ro quyen ghi package.
+    # Luu y: khai bao permissions se THAY THE toan bo quyen mac dinh, nen phai
+    # ghi ca "contents: read" cho actions/checkout.
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -103,10 +110,19 @@ jobs:
       # Vercel nen CLI local/CI KHONG doc duoc gia tri that (build local se loi
       # "Invalid rewrite found" vi rewrite destination rong). Bien Sensitive chi
       # duoc resolve dung trong ha tang build cua chinh Vercel khi deploy remote.
+      # KHONG dung `npx vercel` - npx tai goi vao cache dung chung
+      # ~/.npm/_npx cua runner BTC, nhieu job cua nhieu team ghi cung luc nen
+      # cache hong ("ENOTEMPTY: directory not empty, rename ... get-tsconfig").
+      # Cai Vercel CLI vao thu muc rieng cua tung lan chay, kem cache npm rieng,
+      # de khong dung vao trang thai dung chung cua may.
       - name: Deploy to Vercel
-        run: |
-          npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          npm_config_cache: ${{ runner.temp }}/npm-cache
+        run: |
+          CLI_DIR="${{ runner.temp }}/vercel-cli"
+          npm install --no-save --prefix "$CLI_DIR" vercel@59
+          VERCEL="$CLI_DIR/node_modules/.bin/vercel"
+          "$VERCEL" pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          "$VERCEL" deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
