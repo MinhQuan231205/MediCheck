@@ -121,8 +121,16 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           npm_config_cache: ${{ runner.temp }}/npm-cache
         run: |
+          # Runner self-hosted giu lai workspace giua cac lan chay (cung ly do
+          # phai `rm -f ci_test.db` o job test). Thu muc .vercel con sot lai tu
+          # lan chay truoc se de len VERCEL_ORG_ID/VERCEL_PROJECT_ID va gay loi
+          # "Could not retrieve Project Settings". Xoa cho sach truoc khi pull.
+          rm -rf .vercel
+
           CLI_DIR="${{ runner.temp }}/vercel-cli"
           npm install --no-save --prefix "$CLI_DIR" vercel@59
           VERCEL="$CLI_DIR/node_modules/.bin/vercel"
+          echo "--- token dang dung thuoc ve ai ---"
+          "$VERCEL" whoami --token=${{ secrets.VERCEL_TOKEN }}
           "$VERCEL" pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
           "$VERCEL" deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
