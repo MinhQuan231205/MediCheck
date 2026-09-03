@@ -134,14 +134,12 @@ jobs:
           CLI_DIR="${{ runner.temp }}/vercel-cli"
           npm install --no-save --prefix "$CLI_DIR" vercel@59
           VERCEL="$CLI_DIR/node_modules/.bin/vercel"
-          # Do dai token de phat hien secret bi dan thieu/thua ky tu.
-          # In do dai KHONG lam lo token; gia tri that van bi GitHub che.
-          echo "--- do dai VERCEL_TOKEN: ${#VERCEL_TOKEN} ky tu (Vercel cap 24) ---"
-
-          # whoami chi de chan doan, khong duoc lam hong job -> pull ben duoi
-          # moi la buoc bao loi that su.
-          echo "--- token thuoc ve ai ---"
-          "$VERCEL" whoami || echo "(whoami that bai - xem ghi chu ben duoi)"
-
+          # LUU Y ve VERCEL_TOKEN: phai la token scope TAI KHOAN CA NHAN, khong
+          # duoc dung token scope theo team. Vercel CLI luon goi /v2/user de xac
+          # dinh danh tinh, ma token gioi han theo team bi tra 404 o endpoint do
+          # -> CLI dung ngay voi "Not able to load user ... User not found (404)"
+          # hoac "Could not retrieve Project Settings", du token van truy cap
+          # project binh thuong qua REST API. Team dich da duoc chi dinh bang
+          # VERCEL_ORG_ID nen token ca nhan la du.
           "$VERCEL" pull --yes --environment=production
           "$VERCEL" deploy --prod
